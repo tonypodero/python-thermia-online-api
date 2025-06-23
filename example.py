@@ -3,6 +3,8 @@ import os
 import json
 
 from ThermiaOnlineAPI import Thermia  # Use the improved wrapper instead of direct API
+from ThermiaOnlineAPI.const import THERMIA_AZURE_AUTH_URL, THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE, \
+    THERMIA_AZURE_AUTH_REDIRECT_URI
 
 CHANGE_HEAT_PUMP_DATA_DURING_TEST = (
     False  # Set to True if you want to change heat pump data during test
@@ -90,7 +92,13 @@ def authenticate_thermia():
     if ACCESS_TOKEN:
         try:
             print("Attempting authentication with existing tokens...")
-            thermia = Thermia(access_token=ACCESS_TOKEN, refresh_token=REFRESH_TOKEN)
+            thermia = Thermia(
+                access_token=ACCESS_TOKEN,
+                refresh_token=REFRESH_TOKEN,
+                auth_url=THERMIA_AZURE_AUTH_URL,
+                auth_client_id=THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
+                auth_redirect_uri=THERMIA_AZURE_AUTH_REDIRECT_URI
+            )
 
             # Test connection by checking if we have heat pumps
             if thermia.heat_pumps and len(thermia.heat_pumps) > 0:
@@ -119,7 +127,13 @@ def authenticate_thermia():
             get_credentials_from_user()
 
         try:
-            thermia = Thermia(username=USERNAME, password=PASSWORD)
+            thermia = Thermia(
+                username=USERNAME,
+                password=PASSWORD,
+                auth_url=THERMIA_AZURE_AUTH_URL,
+                auth_client_id=THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
+                auth_redirect_uri=THERMIA_AZURE_AUTH_REDIRECT_URI
+            )
 
             # Test connection by checking if we have heat pumps
             if thermia.heat_pumps and len(thermia.heat_pumps) > 0:

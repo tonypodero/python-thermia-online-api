@@ -49,17 +49,30 @@ REG_OPERATIONMODE_SKIP_VALUES = ["REG_VALUE_OPERATION_MODE_SERVICE"]
 
 
 class ThermiaAPI:
-    def __init__(self, email: str = None, password: str = None,
-                 access_token: str = None, refresh_token: str = None):
+    def __init__(self,
+                 auth_url: str,
+                 auth_client_id: str,
+                 auth_redirect_uri: str,
+                 email: str = None,
+                 password: str = None,
+                 access_token: str = None,
+                 refresh_token: str = None):
         """
-        Initialize ThermiaAPI with either credentials or existing tokens
+        Initialize ThermiaAPI with authentication parameters and either credentials or existing tokens
 
         Args:
+            auth_url: Authentication URL (required)
+            auth_client_id: Authentication client ID and scope (required)
+            auth_redirect_uri: Authentication redirect URI (required)
             email: User email (required if tokens are not provided)
             password: User password (required if tokens are not provided)
             access_token: Existing access token (optional)
             refresh_token: Existing refresh token (optional)
         """
+        # Validate required auth parameters
+        if not auth_url or not auth_client_id or not auth_redirect_uri:
+            raise ValueError("Authentication parameters (auth_url, auth_client_id, auth_redirect_uri) are required")
+
         # Validate input parameters
         has_credentials = email is not None and password is not None
         has_tokens = access_token is not None
@@ -73,6 +86,22 @@ class ThermiaAPI:
         self.__refresh_token = refresh_token
         self.__token_expires_on = None
         self.__refresh_token_expires_on = None
+
+        # Store authentication parameters
+        self.__auth_url = auth_url
+        self.__auth_client_id = auth_client_id
+        self.__auth_redirect_uri = auth_redirect_uri
+
+        # Create instance auth URLs
+        self.__auth_authorize_url = self.__auth_url + "/oauth2/v2.0/authorize"
+        self.__auth_token_url = self.__auth_url + "/oauth2/v2.0/token"
+        self.__auth_self_asserted_url = self.__auth_url + "/SelfAsserted"
+        self.__auth_confirm_url = self.__auth_url + "/api/CombinedSigninAndSignup/confirmed"
+
+        # Default request headers
+        self.__auth_request_headers = {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8"
+        }
 
         self.__default_request_headers = {
             "Authorization": "Bearer ",
@@ -96,7 +125,7 @@ class ThermiaAPI:
             self.authenticated = True
         else:
             self.authenticated = self.__authenticate()
-
+    
     def get_tokens(self) -> Tuple[Optional[str], Optional[str]]:
         """
         Get current access and refresh tokens
@@ -136,16 +165,16 @@ class ThermiaAPI:
             return None
 
         request_token_data = {
-            "client_id": THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
-            "redirect_uri": THERMIA_AZURE_AUTH_REDIRECT_URI,
-            "scope": THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
+            "client_id": self.__auth_client_id,
+            "redirect_uri": self.__auth_redirect_uri,
+            "scope": self.__auth_client_id,
             "refresh_token": self.__refresh_token,
             "grant_type": "refresh_token",
         }
 
         request_token = self.__session.post(
-            AZURE_AUTH_GET_TOKEN_URL,
-            headers=azure_auth_request_headers,
+            self.__auth_token_url,
+            headers=self.__auth_request_headers,
             data=request_token_data,
         )
 
@@ -184,9 +213,9 @@ class ThermiaAPI:
         code_challenge = utils.generate_challenge(43)
 
         request_auth_data = {
-            "client_id": THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
-            "scope": THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
-            "redirect_uri": THERMIA_AZURE_AUTH_REDIRECT_URI,
+            "client_id": self.__auth_client_id,
+            "scope": self.__auth_client_id,
+            "redirect_uri": self.__auth_redirect_uri,
             "response_type": "code",
             "code_challenge": str(
                 utils.base64_url_encode(
@@ -198,7 +227,7 @@ class ThermiaAPI:
         }
 
         request_auth = self.__session.get(
-            AZURE_AUTH_AUTHORIZE_URL, data=request_auth_data
+            self.__auth_authorize_url, data=request_auth_data
         )
 
         state_code = ""
@@ -246,10 +275,10 @@ class ThermiaAPI:
         }
 
         request_self_asserted = self.__session.post(
-            AZURE_SELF_ASSERTED_URL,
+            self.__auth_self_asserted_url,
             cookies=request_auth.cookies,
             data=request_self_asserted_data,
-            headers={**azure_auth_request_headers, "X-Csrf-Token": csrf_token},
+            headers={**self.__auth_request_headers, "X-Csrf-Token": csrf_token},
             params=request_self_asserted_query_params,
         )
 
@@ -278,15 +307,15 @@ class ThermiaAPI:
         }
 
         request_confirmed = self.__session.get(
-            AZURE_AUTH_CONFIRM_URL,
+            self.__auth_confirm_url,
             cookies=request_confirmed_cookies,
             params=request_confirmed_params,
         )
 
         request_token_data = {
-            "client_id": THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
-            "redirect_uri": THERMIA_AZURE_AUTH_REDIRECT_URI,
-            "scope": THERMIA_AZURE_AUTH_CLIENT_ID_AND_SCOPE,
+            "client_id": self.__auth_client_id,
+            "redirect_uri": self.__auth_redirect_uri,
+            "scope": self.__auth_client_id,
             "code": utils.get_list_value_or_default(
                 request_confirmed.url.split("code="), 1, ""
             ),
@@ -295,8 +324,8 @@ class ThermiaAPI:
         }
 
         request_token = self.__session.post(
-            AZURE_AUTH_GET_TOKEN_URL,
-            headers=azure_auth_request_headers,
+            self.__auth_token_url,
+            headers=self.__auth_request_headers,
             data=request_token_data,
         )
 

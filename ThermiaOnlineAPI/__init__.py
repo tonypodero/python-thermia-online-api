@@ -6,8 +6,14 @@ from ThermiaOnlineAPI.model.HeatPump import ThermiaHeatPump
 
 
 class Thermia:
-    def __init__(self, username: str = None, password: str = None,
-                 access_token: str = None, refresh_token: str = None):
+    def __init__(self,
+                 auth_url: str,
+                 auth_client_id: str,
+                 auth_redirect_uri: str,
+                 username: str = None,
+                 password: str = None,
+                 access_token: str = None,
+                 refresh_token: str = None):
         """
         Initialize Thermia API client with flexible authentication options
 
@@ -36,7 +42,10 @@ class Thermia:
             email=username,
             password=password,
             access_token=access_token,
-            refresh_token=refresh_token
+            refresh_token=refresh_token,
+            auth_url=auth_url,
+            auth_client_id=auth_client_id,
+            auth_redirect_uri=auth_redirect_uri
         )
 
         # For backward compatibility
