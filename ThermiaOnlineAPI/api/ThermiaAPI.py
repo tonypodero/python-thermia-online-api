@@ -345,6 +345,60 @@ class ThermiaAPI:
             _LOGGER.error(f"Error parsing authentication response: {e}")
             raise NetworkException(f"Error parsing authentication response: {e}")
 
+    def refresh_tokens(self) -> dict:
+        try:
+            token_response = None
+
+            # Try refresh token first if available and potentially valid
+            if (self.__refresh_token and
+                    (self.__refresh_token_expires_on is None or
+                    self.__refresh_token_expires_on > datetime.now().timestamp())):
+                _LOGGER.info("Attempting to refresh access token")
+                token_response = self.__authenticate_refresh_token()
+            print("Token response:", token_response)
+            if not token_response:
+                return {
+                    "success": False,
+                    "error": {
+                        "message": "No valid refresh token available or refresh failed."
+                    }
+                }
+
+            # Update token information
+            self.__access_token = token_response["access_token"]
+            self.__refresh_token = token_response.get("refresh_token", self.__refresh_token)
+
+            # Handle expires_on (can be string or int)
+            expires_on = token_response["expires_on"]
+            if isinstance(expires_on, str):
+                self.__token_expires_on = int(expires_on)
+            else:
+                self.__token_expires_on = expires_on
+
+            # Set refresh token expiry to 6 hours from now for safety
+            self.__refresh_token_expires_on = (datetime.now() + timedelta(hours=6)).timestamp()
+
+            self.__update_authorization_header()
+
+            return {
+                "success": True,
+                "data": {
+                    "access_token": self.__access_token,
+                    "refresh_token": self.__refresh_token,
+                    "access_token_expires_on": self.__token_expires_on,
+                    "refresh_token_expires_on": self.__refresh_token_expires_on
+                }
+            }
+        except Exception as e:
+            _LOGGER.error(f"Error refreshing tokens: {e}")
+            return {
+                "success": False,
+                "error": {
+                    "message": str(e)
+                }
+            }
+
+
     def __authenticate(self) -> bool:
         """
         Main authentication method - tries refresh token first, then credentials

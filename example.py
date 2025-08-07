@@ -100,6 +100,15 @@ def authenticate_thermia():
                 auth_redirect_uri=THERMIA_AZURE_AUTH_REDIRECT_URI
             )
 
+            response = thermia.refresh_tokens()  # Refresh tokens to ensure they are valid
+
+            if response["success"]:
+                print("✓ [refresh_tokens] Successfully refreshed tokens", response["data"])
+            else:
+                print("✗ [refresh_tokens] Failed to refresh tokens, they may be invalid or expired", response["error"])
+
+            
+
             # Test connection by checking if we have heat pumps
             if thermia.heat_pumps and len(thermia.heat_pumps) > 0:
                 print("✓ Successfully authenticated with existing tokens")

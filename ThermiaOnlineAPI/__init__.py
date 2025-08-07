@@ -54,6 +54,15 @@ class Thermia:
         # Initialize heat pumps
         self.heat_pumps = self.fetch_heat_pumps()
 
+    def refresh_tokens(self) -> dict:
+        """
+        Refresh authentication tokens using the API interface
+
+        Returns:
+            Dict of updated tokens and their expiration times
+        """
+        return self.api_interface.refresh_tokens()
+
     def fetch_heat_pumps(self) -> List[ThermiaHeatPump]:
         """
         Fetch and initialize heat pump objects
