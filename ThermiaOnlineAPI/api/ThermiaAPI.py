@@ -355,7 +355,7 @@ class ThermiaAPI:
                     self.__refresh_token_expires_on > datetime.now().timestamp())):
                 _LOGGER.info("Attempting to refresh access token")
                 token_response = self.__authenticate_refresh_token()
-            print("Token response:", token_response)
+            
             if not token_response:
                 return {
                     "success": False,
